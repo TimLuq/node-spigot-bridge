@@ -2,11 +2,26 @@
   "name": "node-spigot-bridge",
   "version": "0.1.0",
   "description": "A bridge to create Spigot plugins using node",
+  "keywords": [ "spigot", "bukkit", "minecraft", "node-spigot" ],
+  "homepage": "https://github.com/TimLuq/node-spigot-bridge#readme",
+  "bugs": {
+    "url" : "https://github.com/TimLuq/node-spigot-bridge/issues"
+  },
+  "license": "LGPL-2.1+",
+  "author": {
+    "name": "Tim Lundqvist",
+    "url": "https://github.com/TimLuq"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/TimLuq/node-spigot-bridge.git"
+  },
+  "engines": {
+    "node": ">=10.0.0"
+  },
   "main": "./dist/index.js",
+  "module": "./build/index",
   "types": "./build/index.d.ts",
-  "author": "TimLuq",
-  "license": "ICS",
-  "private": true,
   "devDependencies": {
     "@types/node": "^10.0.4",
     "rollup-plugin-uglify": "^3.0.0"
