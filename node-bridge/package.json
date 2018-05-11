@@ -27,6 +27,6 @@
     "rollup-plugin-uglify": "^3.0.0"
   },
   "scripts": {
-    "prepare": "tsc -p tsconfig.json && rollup -c"
+    "prepare": "tsc -p tsconfig.json && rollup -c && cp ../README.md ./"
   }
 }
