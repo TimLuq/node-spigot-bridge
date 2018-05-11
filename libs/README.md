@@ -1,0 +1,1 @@
+Place `spigot-api-shaded.jar` in this repository.

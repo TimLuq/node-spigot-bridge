@@ -1,0 +1,5 @@
+name: NodeSpigotBridge
+version: 0.1.0
+main: net.timluq.mc.nodespigotbridge.JavaBridge
+description: Plugin bridge to enable JavaScript plugins in a node environment.
+author: TimLuq

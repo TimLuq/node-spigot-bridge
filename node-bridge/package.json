@@ -1,0 +1,17 @@
+{
+  "name": "node-spigot-bridge",
+  "version": "0.1.0",
+  "description": "A bridge to create Spigot plugins using node",
+  "main": "./dist/index.js",
+  "types": "./build/index.d.ts",
+  "author": "TimLuq",
+  "license": "ICS",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^10.0.4",
+    "rollup-plugin-uglify": "^3.0.0"
+  },
+  "scripts": {
+    "prepare": "tsc -p tsconfig.json && rollup -c"
+  }
+}
