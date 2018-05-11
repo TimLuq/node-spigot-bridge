@@ -1,7 +1,7 @@
 import initialize from "./initialize";
 
 if (process.mainModule === module) {
-    require.cache["node-spigot-bridge"] = module;
+    require.cache["spigot-bridge"] = module;
     initialize();
 }
 

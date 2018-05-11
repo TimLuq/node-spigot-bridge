@@ -3,7 +3,7 @@ import Plugin, { ICommandSender, registeredPlugins } from "../plugin";
 import Player from "../player";
 
 class MetaPlugin extends Plugin {
-    public readonly name = "node-spigot-bridge";
+    public readonly name = "spigot-bridge";
     public readonly version = "0.1.0";
 
     public start() {
