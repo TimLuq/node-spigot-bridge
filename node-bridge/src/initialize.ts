@@ -4,6 +4,7 @@ import { readFile, writeFile } from "fs/promises";
 import MetaPlugin from "./metaplugin/index";
 import { Plugin, registeredPlugins } from "./plugin";
 
+/** Simplified `package.json` interface */
 interface IPackage {
     name: string;
     version: string;
@@ -19,21 +20,29 @@ interface IPackage {
     spigotmc?: string;
 }
 
+/** Overridden plugin loader */
 interface IData {
     default: Array<{ new(): Plugin; }> | Promise<Array<{ new(): Plugin; }>>;
     start?(beforeLoad: boolean): Promise<void> | void;
     stop?(): Promise<void>;
 }
 
+/**
+ * A module exporting a Plugin.
+ */
 interface IPluginModule {
     default?: { new(): Plugin; } | Promise<{ new(): Plugin; }>;
     Plugin?: { new(): Plugin; } | Promise<{ new(): Plugin; }>;
 }
 
+/**
+ * Reads the dependency and loads it.
+ * @param {string} dep a name of a package dependency
+ */
 function depToPlugin(dep: string): Promise<{ new(): Plugin; } | null> {
     const dir = "./node_modules/" + dep + "/";
     return readFile(dir + "package.json", "utf8").then(JSON.parse).then((pkg: IPackage) => {
-        const main = pkg.spigotmc || pkg.main;
+        const main = pkg.spigotmc || pkg.main || "index.js";
         if (!main) {
             throw new Error("No `spigotmc` or `main` definition in package.json");
         }
@@ -46,9 +55,24 @@ function depToPlugin(dep: string): Promise<{ new(): Plugin; } | null> {
             if (typeof p !== "function" || !p.prototype) {
                 throw new Error("Exported type is not a class");
             }
+            if (p.prototype === Plugin.prototype) {
+                throw new Error("Exported type is a reexport of Plugin");
+            }
             if (!(p.prototype instanceof Plugin)) {
                 throw new Error("Exported class is not an extension of Plugin");
             }
+            try {
+                if (!p.prototype.name) {
+                    (p.prototype as any).name = pkg.name;
+                }
+            // tslint:disable-next-line:no-empty
+            } catch (_) {}
+            try {
+                if (!p.prototype.version) {
+                    (p.prototype as any).version = pkg.version;
+                }
+            // tslint:disable-next-line:no-empty
+            } catch (_) {}
             return p;
         });
     }).catch((e) => {
@@ -58,6 +82,9 @@ function depToPlugin(dep: string): Promise<{ new(): Plugin; } | null> {
     });
 }
 
+/**
+ * Called to start up plugins.
+ */
 export default async function initialize() {
     init();
     const plugins: Array<{ new(): Plugin; }> = [

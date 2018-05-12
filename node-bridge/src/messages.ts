@@ -1,12 +1,18 @@
 import { Writable } from "stream";
 import { MessageTypes } from "./messageTypes";
 
+/**
+ * A received message.
+ */
 export interface IMessage {
     syncId?: number;
     type: MessageTypes;
     data?: Buffer | number;
 }
 
+/**
+ * A stream sink which will send parsed messages to a callback.
+ */
 export class Messages extends Writable {
 
     // tslint:disable-next-line:variable-name
@@ -30,8 +36,16 @@ export class Messages extends Writable {
         this.processData(callback);
     }
 
+    /**
+     * A queue of bytes to be processed.
+     */
     private readonly rest: Buffer[] = [];
 
+    /**
+     * Creates a sink for a readable stream which calls a callback function each time a message is received.
+     * @param stream a readable stream which has a pipe method
+     * @param messageHandler callback function to call each time a message has been received through `stream`
+     */
     public constructor(stream: NodeJS.ReadableStream, private readonly messageHandler: (m: IMessage) => void) {
         super({
             write: Messages._write as any,
@@ -43,6 +57,10 @@ export class Messages extends Writable {
     // tslint:disable-next-line:no-empty
     public start() {}
 
+    /**
+     * Process the currently queued bytes and trigger `this.messageHandler` for each completed message.
+     * @param callback callback to call after the queued bytes have been processed
+     */
     private processData(callback: (err?: Error) => void) {
         try {
             while (this.rest.length) {
@@ -87,6 +105,11 @@ export class Messages extends Writable {
         callback();
     }
 
+    /**
+     * Reads a big endian number from a specific position in the byte queue.
+     * @param pos position of the most significant byte
+     * @param len number of bytes to read, 1, 2, or 4 are recommended
+     */
     private getInt(pos: number, len: number = 4) {
         if (len === 0) {
             return 0;
@@ -108,7 +131,12 @@ export class Messages extends Writable {
         throw null;
     }
 
-    private skip(pos: number) {
+    /**
+     * Removes a number of bytes from the front of the byte queue
+     * @param {number} pos the number of bytes to discard
+     * @returns {void}
+     */
+    private skip(pos: number): void {
         while (pos !== 0) {
             if (this.rest[0].length <= pos) {
                 pos -= this.rest[0].length;
@@ -119,7 +147,13 @@ export class Messages extends Writable {
         }
     }
 
-    private extract(pos: number) {
+    /**
+     * Extracts a number of bytes from the byte queue,
+     * which removes them from the queue and returns them as a `Buffer`.
+     * @param {number} pos the number of bytes to extract
+     * @returns {Buffer} extracted bytes
+     */
+    private extract(pos: number): Buffer {
         const bs: Buffer[] = [];
         const l = pos;
         let i = 0;

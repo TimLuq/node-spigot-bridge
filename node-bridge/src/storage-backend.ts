@@ -3,21 +3,28 @@
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 
+/** A way to store data */
 export interface IStorageBackend {
+    /** Store data */
     set(key: string, value: any): Promise<void>;
+    /** Get stored data */
     get<T>(key: string): undefined | T | Promise<undefined | T>;
 }
 
+/** An interface which is used to hold a storage backend and cache. */
 export interface IBackendProxy {
+    /** A storage backend */
     backend: IStorageBackend;
+    /** A cache used for storing iterms previously fetched */
     cache: Map<string, any>;
+    /** An object to store symbol properties on */
     symbols?: any;
 }
 
 /**
  * Stores one JSON file per plugin.
  */
-export class JSONStorageBackend implements IStorageBackend {
+class JSONStorageBackend implements IStorageBackend {
     private readonly file: string;
     private lastSave = Promise.resolve();
     private queuedWrites: boolean = false;
@@ -113,7 +120,7 @@ export class JSONStorageBackend implements IStorageBackend {
 }
 
 /**
- * Stores one JSON file per plugin.
+ * Stores temporary storage which will be deleted when the plugin is reloaded.
  */
 class SessionStorageBackend implements IStorageBackend {
     private readonly data = new Map<string, any>();
@@ -133,6 +140,16 @@ class SessionStorageBackend implements IStorageBackend {
     }
 }
 
+/**
+ * Stores one JSON file per plugin.
+ */
+export function jsonStorageBackend(pluginName: string, pluginVersion: string): IStorageBackend {
+    return new JSONStorageBackend(pluginName, pluginVersion);
+}
+
+/**
+ * Temporary storage which will never be stored at rest, a fresh storage is used when the plugin is reloaded.
+ */
 export function sessionStorageBackend(): IStorageBackend {
     return new SessionStorageBackend();
 }

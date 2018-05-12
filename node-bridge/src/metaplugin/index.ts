@@ -14,6 +14,9 @@ class MetaPlugin extends Plugin {
         });
     }
 
+    /**
+     * Callback for command `nodejs`.
+     */
     private nodejs(sender: ICommandSender, _: string, subcommand?: string) {
         if (!subcommand) {
             if (sender.player) {
