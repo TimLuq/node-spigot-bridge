@@ -5,6 +5,7 @@ if (process.mainModule === module) {
     initialize();
 }
 
-export { IMessage } from "./messages";
+export { CommandReservedError, PluginError, PluginErrors } from "./errors";
 export { Player } from "./player";
-export { Plugin, Plugin as default, IPluginStorage, ICommandOptions, ICommandSender } from "./plugin";
+export { CommandHandler, Plugin, Plugin as default, IPluginStorage, ICommandOptions, ICommandSender } from "./plugin";
+export { IStorageBackend, jsonStorageBackend, sessionStorageBackend } from "./storage-backend";
