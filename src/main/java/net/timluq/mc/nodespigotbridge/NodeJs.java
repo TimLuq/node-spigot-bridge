@@ -88,16 +88,24 @@ public class NodeJs {
         });
     }
     
-
+    /**
+     * Send a message containing a payload string.
+     */
     public void sendString(MessageType com, CharSequence data) throws IOException {
         this.sendString(com, data, false);
     }
     
+    /**
+     * Send a message containing a payload string.
+     */
     public CompletableFuture<InputMessage> sendString(MessageType com, CharSequence stringdata, boolean sync) throws IOException {
         final byte[] data = stringdata == null ? null : stringdata.toString().getBytes(StandardCharsets.UTF_8);
         return sendBytes(com, data, sync);
     }
     
+    /**
+     * Send a message containing a binary payload.
+     */
     public CompletableFuture<InputMessage> sendBytes(MessageType com, byte[] data, boolean sync) throws IOException {
         if (com == MessageType.REPLY) {
             throw new RuntimeException("Explicit MessageType.REPLY is denied for sendBytes. Use sendReplyBytes instead.");
@@ -133,10 +141,16 @@ public class NodeJs {
         return future;
     }
 
+    /**
+     * Send a message containing a short integer as the payload.
+     */
     public void sendShort(MessageType com, short data) throws IOException {
         this.sendShort(com, data, false);
     }
 
+    /**
+     * Send a message containing a short integer as the payload.
+     */
     public CompletableFuture<InputMessage> sendShort(MessageType com, short data, boolean sync) throws IOException {
         if (com == MessageType.REPLY) {
             throw new RuntimeException("Explicit MessageType.REPLY is denied for sendShort. Use sendReplyShort instead.");
@@ -166,6 +180,9 @@ public class NodeJs {
         return future;
     }
 
+    /**
+     * Reply to a message with a short integer.
+     */
     public void sendReplyShort(short replyId, short data) throws IOException {
         synchronized (this.syncOutput) {
             final OutputStream o = this.nodeProcess.getOutputStream();
@@ -178,6 +195,9 @@ public class NodeJs {
         }
     }
 
+    /**
+     * Reply to a message without any payload.
+     */
     public void sendReplySignal(short replyId) throws IOException {
         synchronized (this.syncOutput) {
             final OutputStream o = this.nodeProcess.getOutputStream();
@@ -188,11 +208,17 @@ public class NodeJs {
         }
     }
 
+    /**
+     * Reply to a message with a string value.
+     */
     public void sendReplyString(short replyId, CharSequence stringdata) throws IOException {
         final byte[] data = stringdata == null ? null : stringdata.toString().getBytes(StandardCharsets.UTF_8);
         sendReplyBytes(replyId, data);
     }
 
+    /**
+     * Reply to a message with some binary data.
+     */
     public void sendReplyBytes(short replyId, byte[] data) throws IOException {
         synchronized (this.syncOutput) {
             final OutputStream o = this.nodeProcess.getOutputStream();
@@ -205,6 +231,30 @@ public class NodeJs {
                 o.write(data.length & 0xFF);
                 o.write(data);
             }
+            o.write(replyId >> 8);
+            o.write(replyId & 0xFF);
+            o.flush();
+        }
+    }
+
+    /**
+     * Reply to a message with an error, indicating something didn't go as expected.
+     */
+    public void sendReplyError(short replyId, Exception exc) throws IOException {
+        synchronized (this.syncOutput) {
+            final OutputStream o = this.nodeProcess.getOutputStream();
+            int n = MessageType.ERROR.number | SEND_SYNC;
+            StringBuilder sb = new StringBuilder();
+            sb.append("{\"m\":\"");
+            Encodings.escapeString(sb, exc.getMessage());
+            sb.append("\",\"c\":\"");
+            Encodings.escapeString(sb, exc.getClass().getCanonicalName());
+            sb.append("\"}");
+            byte[] data = sb.toString().getBytes();
+            o.write(n | SEND_BUFFER);
+            o.write(data.length >> 8);
+            o.write(data.length & 0xFF);
+            o.write(data);
             o.write(replyId >> 8);
             o.write(replyId & 0xFF);
             o.flush();

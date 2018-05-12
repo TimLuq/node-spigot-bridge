@@ -12,6 +12,7 @@ public enum MessageType {
     MSG_PLAYER(6),
     MSG_PLAYER_MULTI(7),
 
+    ERROR(30),
     REPLY(31);
 
     public final int number;
@@ -29,6 +30,7 @@ public enum MessageType {
             case  5: return MessageType.SET_PLAYER;
             case  6: return MessageType.MSG_PLAYER;
             case  7: return MessageType.MSG_PLAYER_MULTI;
+            case 30: return MessageType.ERROR;
             case 31: return MessageType.REPLY;
         }
         throw new IndexOutOfBoundsException(v);

@@ -216,6 +216,40 @@ export class Player {
             return v;
         });
     }
+
+    /**
+     * Set a players permissions.
+     * @param {string[]} perms permissions to set
+     * @returns {Promise<void>} resolves when the request has been passed to the server
+     */
+    public setPermissions(...perms: string[]): Promise<void> {
+        perms = perms.filter((x) => x ? true : false);
+        if (perms.length === 0) {
+            return Promise.resolve();
+        }
+        const p = Buffer.concat([ this.uuidBuff, Buffer.from(perms.join(","), "utf8") ]);
+        return sendSignal(MessageTypes.GET_PLAYER, PlayerProp.PERMISSIONS, p);
+    }
+
+    /**
+     * Set a players permissions temporarily.
+     * @param {number} ticks number of ticks the permission is active
+     * @param {string[]} perms permissions to set
+     * @returns {Promise<void>} resolves when the request has been passed to the server
+     */
+    public setTempPermissions(ticks: number, ...perms: string[]): Promise<void> {
+        perms = perms.filter((x) => x ? true : false);
+        if (perms.length === 0) {
+            return Promise.resolve();
+        }
+        const p = Buffer.concat([
+            this.uuidBuff,
+            // tslint:disable-next-line:no-bitwise
+            Buffer.from([(ticks >> 24) & 0xFF, (ticks >> 16) & 0xFF, (ticks >> 8) & 0xFF, ticks & 0xFF]),
+            Buffer.from(perms.join(","), "utf8"),
+        ]);
+        return sendSignal(MessageTypes.GET_PLAYER, PlayerProp.PERMISSION_MATCHING, p);
+    }
 }
 
 export default Player;

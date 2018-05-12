@@ -70,16 +70,16 @@ public class BridgedCommand extends PluginsCommand {
         } else if (this.tabcomplete.equals("")) {
             try {
                 StringBuilder sb = new StringBuilder();
-                EscapeString.escape(sb.append("{\"a\":\""), alias).append("\"");
+                Encodings.escapeString(sb.append("{\"a\":\""), alias).append("\"");
                 if (args != null && args.length != 0) {
                     sb.append(",\"p\":[");
                     for (int i = 0; i < args.length; i++) {
                         if (i != 0) sb.append(",");
-                        EscapeString.escape(sb.append("\""), args[i]).append("\"");
+                        Encodings.escapeString(sb.append("\""), args[i]).append("\"");
                     }
                     sb.append("]");
                 }
-                EscapeString.escape(sb.append(",\"s\":{\"c\":\""), sender.getClass().getCanonicalName()).append("\"");
+                Encodings.escapeString(sb.append(",\"s\":{\"c\":\""), sender.getClass().getCanonicalName()).append("\"");
                 if (sender.isOp()) {
                     sb.append(",\"op\":true");
                 }
@@ -104,16 +104,16 @@ public class BridgedCommand extends PluginsCommand {
 	public boolean execute(CommandSender sender, String command, String[] args) {
         try {
             StringBuilder sb = new StringBuilder();
-            EscapeString.escape(sb.append("{\"a\":\""), command).append("\"");
+            Encodings.escapeString(sb.append("{\"a\":\""), command).append("\"");
             if (args != null && args.length != 0) {
                 sb.append(",\"p\":[");
                 for (int i = 0; i < args.length; i++) {
                     if (i != 0) sb.append(",");
-                    EscapeString.escape(sb.append("\""), args[i]).append("\"");
+                    Encodings.escapeString(sb.append("\""), args[i]).append("\"");
                 }
                 sb.append("]");
             }
-            EscapeString.escape(sb.append(",\"s\":{\"c\":\""), sender.getClass().getCanonicalName()).append("\"");
+            Encodings.escapeString(sb.append(",\"s\":{\"c\":\""), sender.getClass().getCanonicalName()).append("\"");
             if (sender.isOp()) {
                 sb.append(",\"op\":true");
             }

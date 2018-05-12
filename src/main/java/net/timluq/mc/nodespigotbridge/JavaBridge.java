@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -15,6 +16,7 @@ import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -54,7 +56,10 @@ public class JavaBridge extends JavaPlugin {
                     }
                     return;
                 } else if (m.type == MessageType.GET_PLAYER) {
-                    Player p = this.getServer().getPlayer(EscapeString.getUUID(m.binaryValue));
+                    if (m.reply == null) {
+                        return;
+                    }
+                    Player p = this.getServer().getPlayer(Encodings.getUUID(m.binaryValue));
                     PlayerField f = PlayerField.fromInt(m.shortValue);
                     try {
                         if (f == PlayerField.DISPLAY_NAME) {
@@ -96,7 +101,7 @@ public class JavaBridge extends JavaPlugin {
                                 } else {
                                     sb.append(",[\"");
                                 }
-                                EscapeString.escape(sb, pr);
+                                Encodings.escapeString(sb, pr);
                                 sb.append("\",").append(perm.getValue() ? '1' : '0').append("]");
                             }
                             sb.append("]");
@@ -107,12 +112,64 @@ public class JavaBridge extends JavaPlugin {
                     } catch (IOException e) {
                         this.getLogger().log(Level.SEVERE, "Failed to send reply (" + String.valueOf(m.reply) + ") to: GET_PLAYER_" + f.toString(), e);
                     }
+                } else if (m.type == MessageType.SET_PLAYER) {
+                    Player p = this.getServer().getPlayer(Encodings.getUUID(m.binaryValue));
+                    PlayerField f = PlayerField.fromInt(m.shortValue);
+                    try {
+                        if (f == PlayerField.DISPLAY_NAME) {
+                            p.setDisplayName(new String(m.binaryValue, 16, m.binaryValue.length - 16, StandardCharsets.UTF_8));
+						} else if (f == PlayerField.EXHAUSTION) {
+                            p.setExhaustion(Encodings.leShort(m.binaryValue, 16) / (float) 100.0);
+                        } else if (f == PlayerField.EXP) {
+                            p.setExp(Encodings.leShort(m.binaryValue, 16) / (float) 10000.0);
+                        } else if (f == PlayerField.FLY_SPEED) {
+                            p.setFlySpeed(Encodings.leShort(m.binaryValue, 16) / (float) 10000.0);
+                        } else if (f == PlayerField.FOOD_LEVEL) {
+                            p.setFoodLevel(Encodings.leShort(m.binaryValue, 16));
+                        } else if (f == PlayerField.HEALTH_SCALE) {
+                            p.setHealthScale(Encodings.leShort(m.binaryValue, 16) / 100.0);
+                        } else if (f == PlayerField.LEVEL) {
+                            p.setLevel(Encodings.leShort(m.binaryValue, 16));
+                        } else if (f == PlayerField.PERMISSIONS || f == PlayerField.PERMISSIONS_MATCHING) {
+                            final int off = f == PlayerField.PERMISSIONS ? 16 : 20;
+                            final String[] perms = new String(m.binaryValue, off, m.binaryValue.length - off, StandardCharsets.UTF_8).split(",");
+                            int r = 0;
+                            PermissionAttachment att = f == PlayerField.PERMISSIONS ? p.addAttachment(this) : p.addAttachment(this, Encodings.leInt(m.binaryValue, 16));
+                            for (int i = 0; i < perms.length; i++) {
+                                if (!p.hasPermission(perms[i])) {
+                                    att.setPermission(perms[i], true);
+                                    r++;
+                                }
+                            }
+                            if (r == 0) {
+                                p.removeAttachment(att);
+                            }
+                        } else if (m.reply == null) {
+                            return;
+                        } else {
+                            node.sendReplyError(m.reply, new UnsupportedOperationException("No setter is implemented for " + String.valueOf(f)));
+                            return;
+                        }
+                        if (m.reply != null) {
+                            node.sendReplySignal(m.reply);
+                        }
+                    } catch (IOException e) {
+                        this.getLogger().log(Level.SEVERE, "Failed to send reply (" + String.valueOf(m.reply) + ") to: GET_PLAYER_" + f.toString(), e);
+                    }
                 } else if (m.type == MessageType.MSG_PLAYER) {
-                    Player p = this.getServer().getPlayer(EscapeString.getUUID(m.binaryValue));
+                    UUID uuid = Encodings.getUUID(m.binaryValue);
+                    Player p = this.getServer().getPlayer(uuid);
                     p.sendMessage(new String(m.binaryValue, 16, m.binaryValue.length - 16, StandardCharsets.UTF_8));
+                    if (m.reply != null) {
+                        try {
+							node.sendReplySignal(m.reply);
+						} catch (IOException e) {
+                            this.getLogger().log(Level.SEVERE, "Failed to send reply (" + String.valueOf(m.reply) + ") to: MSG_PLAYER_" + uuid.toString(), e);
+						}
+                    }
                     return;
                 } else if (m.type == MessageType.MSG_PLAYER_MULTI) {
-                    Player p = this.getServer().getPlayer(EscapeString.getUUID(m.binaryValue));
+                    Player p = this.getServer().getPlayer(Encodings.getUUID(m.binaryValue));
                     int offset = 16;
                     while (offset < m.binaryValue.length) {
                         int len = ((m.binaryValue[offset] & 0xFF) << 8) | (m.binaryValue[offset + 1] & 0xFF);

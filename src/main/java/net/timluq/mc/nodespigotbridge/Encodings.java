@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.util.UUID;
 
 @SuppressWarnings("unchecked")
-public final class EscapeString {
+public final class Encodings {
     private static final char[] hexchars = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-    public static <T extends Appendable>T escape(T sb, CharSequence data) throws IOException {
+    public static <T extends Appendable>T escapeString(T sb, CharSequence data) throws IOException {
         final int l = data.length();
         for (int i = 0; i < l; i++) {
             char c = data.charAt(i);
@@ -76,5 +76,13 @@ public final class EscapeString {
             bs[i + 8] = (byte) ((b >> (64 - ((1 + i) * 8))) & 0xFF);
         }
         return bs;
+    }
+
+    public static short leShort(byte[] data, int pos) {
+        return (short) ((((int) data[pos]) << 8) | (((int) data[pos + 1]) & 0xFF));
+    }
+
+    public static int leInt(byte[] data, int pos) {
+        return (((int) data[pos]) << 24) | ((((int) data[pos + 1]) & 0xFF) << 16) | ((((int) data[pos + 1]) & 0xFF) << 8) | (((int) data[pos + 1]) & 0xFF);
     }
 }

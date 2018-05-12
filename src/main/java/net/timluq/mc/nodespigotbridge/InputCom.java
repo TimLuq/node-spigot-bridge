@@ -80,6 +80,9 @@ public class InputCom extends Thread implements Runnable {
                         if (ex instanceof InterruptedException){
                             throw ex;
                         }
+                        if (m.reply != null) {
+                            bridge.node.sendReplyError(m.reply, ex);
+                        }
                         ex.printStackTrace();
                     }
                 }
