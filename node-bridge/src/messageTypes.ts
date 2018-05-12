@@ -1,3 +1,6 @@
+/**
+ * Types of messages running though the connection to Spigot.
+ */
 export const enum MessageTypes {
     EXIT = 0,
     ENABLE = 1,
@@ -10,6 +13,7 @@ export const enum MessageTypes {
     MSG_PLAYER = 6,
     MSG_PLAYER_MULTI = 7,
 
+    ERROR = 30,
     REPLY = 31,
 }
 

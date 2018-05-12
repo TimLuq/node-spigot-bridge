@@ -1,7 +1,8 @@
+import { JavaError } from "./errors";
 import { IMessage, Messages } from "./messages";
 import { MessageTypes } from "./messageTypes";
 
-type FReply = (b?: Buffer | number) => void;
+type FReply = [(b?: Buffer | number) => void, (e: Error) => void];
 
 let syncIndex: number = 0;
 const waitingReply = new Map<number, FReply>();
@@ -14,9 +15,27 @@ export const messageHandlers = new Map<MessageTypes, (m: IMessage) => void>();
 export function init() {
     new Messages(process.stdin, (m: IMessage) => {
         if (m.type === MessageTypes.REPLY && m.syncId !== undefined) {
-            const repl = waitingReply.get(m.syncId) as (b?: Buffer | number) => void;
+            const repl = waitingReply.get(m.syncId) as FReply;
             try {
-                repl(m.data);
+                repl[0](m.data);
+            } catch (e) {
+                // tslint:disable-next-line:no-console
+                console.error(e);
+            }
+            waitingReply.delete(m.syncId);
+            return;
+        }
+        if (m.type === MessageTypes.ERROR && m.syncId !== undefined) {
+            const repl = waitingReply.get(m.syncId) as FReply;
+            try {
+                const j = JSON.parse((m.data as Buffer).toString("utf8"));
+                const e = new JavaError(j.m, j.c);
+                for (const k of Object.keys(j)) {
+                    if (k !== "m" && k !== "c") {
+                        (e as any)[k] = j[k];
+                    }
+                }
+                repl[1](e);
             } catch (e) {
                 // tslint:disable-next-line:no-console
                 console.error(e);
@@ -118,7 +137,7 @@ export function sendAsync<R extends Buffer | number | undefined>(type: MessageTy
     }
 
     return new Promise<R>((s, r) => {
-        waitingReply.set(idx, s as FReply);
+        waitingReply.set(idx, [s, r] as FReply);
         send(...bs).catch(r);
     });
 }
@@ -165,6 +184,11 @@ export function sendSignal(type: MessageTypes, data?: Buffer | number, bufferDat
     return send(...bs);
 }
 
+/**
+ * Sends a reply to a message initiated by the java plugin.
+ * @param idx replyId
+ * @param data data to reply with
+ */
 export function sendReply(idx: number, data?: Buffer | number): Promise<void> {
     const bs: Buffer[] = [Buffer.alloc(3)];
     if (typeof data === "number") {
@@ -177,6 +201,36 @@ export function sendReply(idx: number, data?: Buffer | number): Promise<void> {
         // tslint:disable-next-line:no-bitwise
         bs.push(Buffer.from([idx >> 8, idx & 0xFF]));
     } else if (typeof data === "object") {
+        // tslint:disable-next-line:no-bitwise
+        bs[0][0] = MessageTypes.REPLY | 0xC0;
+        // tslint:disable-next-line:no-bitwise
+        bs[0][1] = data.length >> 8;
+        // tslint:disable-next-line:no-bitwise
+        bs[0][2] = data.length & 0xFF;
+        bs.push(data);
+        // tslint:disable-next-line:no-bitwise
+        bs.push(Buffer.from([idx >> 8, idx & 0xFF]));
+    } else {
+        // tslint:disable-next-line:no-bitwise
+        bs[0][0] = MessageTypes.REPLY | 0x80;
+        // tslint:disable-next-line:no-bitwise
+        bs[0][1] = idx >> 8;
+        // tslint:disable-next-line:no-bitwise
+        bs[0][2] = idx & 0xFF;
+    }
+    return send(...bs);
+}
+
+/**
+ * Respond with an error.
+ * @param idx replyId
+ * @param error error message
+ */
+export function sendError(idx: number, error?: Error | string): Promise<void> {
+    const s = error && error.toString();
+    const bs: Buffer[] = [Buffer.alloc(3)];
+    if (s && s.length) {
+        const data = Buffer.from(s, "utf8");
         // tslint:disable-next-line:no-bitwise
         bs[0][0] = MessageTypes.REPLY | 0xC0;
         // tslint:disable-next-line:no-bitwise
