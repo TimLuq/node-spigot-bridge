@@ -1,7 +1,9 @@
 // tslint:disable:max-classes-per-file
 
-import { readFile, writeFile } from "fs/promises";
+import { promises as fs } from "fs";
 import { join } from "path";
+
+const { readFile, writeFile } = fs;
 
 /** A way to store data */
 export interface IStorageBackend {

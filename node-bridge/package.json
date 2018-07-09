@@ -28,7 +28,7 @@
   "module": "./build/index",
   "types": "./build/index.d.ts",
   "devDependencies": {
-    "@types/node": "^10.0.4",
+    "@types/node": "^10.5.2",
     "rollup-plugin-uglify": "^3.0.0"
   },
   "scripts": {

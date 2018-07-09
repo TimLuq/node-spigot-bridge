@@ -1,8 +1,10 @@
 import { init } from "./communication";
 
-import { readFile, writeFile } from "fs/promises";
+import { promises as fs } from "fs";
 import MetaPlugin from "./metaplugin/index";
 import { Plugin, registeredPlugins } from "./plugin";
+
+const { readFile, writeFile } = fs;
 
 /** Simplified `package.json` interface */
 interface IPackage {
