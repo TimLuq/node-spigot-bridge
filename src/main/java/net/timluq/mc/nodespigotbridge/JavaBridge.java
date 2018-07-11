@@ -8,9 +8,12 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.Server;
 import org.bukkit.command.CommandMap;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -21,8 +24,15 @@ import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class JavaBridge extends JavaPlugin {
+
     protected NodeJs node = null;
 
+    @SuppressWarnings("deprecation")
+    protected CompletableFuture<OfflinePlayer> getOfflinePlayer(final String name) {
+        return CompletableFuture.supplyAsync(() -> {
+            return this.getServer().getOfflinePlayer(name);
+        });
+    }
 
     @Override
     public void onEnable() {
@@ -59,8 +69,37 @@ public class JavaBridge extends JavaPlugin {
                     if (m.reply == null) {
                         return;
                     }
-                    Player p = this.getServer().getPlayer(Encodings.getUUID(m.binaryValue));
-                    PlayerField f = PlayerField.fromInt(m.shortValue);
+                    final PlayerField f = PlayerField.fromInt(m.shortValue);
+                    Server server = this.getServer();
+                    Player p;
+                    if (f == PlayerField.UUID) {
+                        final String name = new String(m.binaryValue);
+                        p = server.getPlayer(name);
+                        if (p != null) {
+							try {
+								node.sendReplyString(m.reply, p.getUniqueId().toString());
+							} catch (IOException e) {
+                                this.getLogger().log(Level.SEVERE, "Failed to send reply (" + String.valueOf(m.reply) + ") to: GET_PLAYER_" + f.toString(), e);
+							}
+                        } else {
+                            // getting an OfflinePlayer by name may complete only after a network lookup
+                            // do this work in another thread
+                            this.getOfflinePlayer(name).thenAcceptAsync((OfflinePlayer op) -> {
+                                try {
+                                    UUID offuuid = op == null ? null : op.getUniqueId();
+                                    if (offuuid != null) {
+                                        node.sendReplyString(m.reply, offuuid.toString());
+                                    } else {
+                                        node.sendReplySignal(m.reply);
+                                    }
+                                } catch (IOException e) {
+                                    this.getLogger().log(Level.SEVERE, "Failed to send reply (" + String.valueOf(m.reply) + ") to: GET_PLAYER_" + f.toString(), e);
+                                }
+                            });
+                        }
+                        return;
+                    }
+                    p = server.getPlayer(Encodings.getUUID(m.binaryValue));
                     try {
                         if (f == PlayerField.DISPLAY_NAME) {
 							node.sendReplyString(m.reply, p.getDisplayName());

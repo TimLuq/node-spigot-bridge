@@ -5,7 +5,6 @@ export default {
     external: [
         "stream",
         "fs",
-        "fs/promises",
         "path"
     ],
     plugins: [

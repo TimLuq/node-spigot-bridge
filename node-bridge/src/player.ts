@@ -2,6 +2,7 @@ import { sendAsync, sendSignal } from "./communication";
 import MessageTypes from "./messageTypes";
 
 const playerCache = new Map<string, Player>();
+const nameCache = new Map<string, Promise<string | null>>();
 
 const enum PlayerProp {
     DISPLAY_NAME = 0,
@@ -14,6 +15,8 @@ const enum PlayerProp {
 
     PERMISSIONS = 0x100,
     PERMISSION_MATCHING = 0x101,
+
+    UUID = 0x200,
 }
 
 /**
@@ -33,6 +36,42 @@ export class Player {
             playerCache.set(uuid, p);
             return p;
         }
+    }
+
+    /**
+     * Get the UUID of a player by their name.
+     * @param {string} name name of the player to lookup
+     * @returns {Promise<string | null>} a Promise which resolves to a UUID when the player is found and null otherwise
+     */
+    public static uuidByName(name: string): Promise<string | null> {
+        if (nameCache.has(name)) {
+            return nameCache.get(name) as Promise<string | null>;
+        } else {
+            const d = sendAsync<Buffer>(MessageTypes.GET_PLAYER, PlayerProp.UUID, Buffer.from(name, "utf8"))
+                .then((x) => x && x.length ? x.toString("utf8") : null);
+            nameCache.set(name, d);
+            return d;
+        }
+    }
+
+    /**
+     * Get a player by their name.
+     * @param {string} name name of the player to lookup
+     * @returns {Promise<Player | null>} a Player which represent the player with the UUID
+     */
+    public static getByName(name: string): Promise<Player | null> {
+        return this.uuidByName(name).then((uuid) => {
+            if (uuid === null) {
+                return null;
+            }
+            if (playerCache.has(uuid)) {
+                return playerCache.get(uuid) as Player;
+            } else {
+                const p = new Player(uuid);
+                playerCache.set(uuid, p);
+                return p;
+            }
+        });
     }
 
     private readonly buffered = new Map<PlayerProp, Promise<any>>();

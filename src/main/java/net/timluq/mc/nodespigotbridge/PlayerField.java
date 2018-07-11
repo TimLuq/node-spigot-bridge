@@ -10,7 +10,9 @@ public enum PlayerField {
     LEVEL(6),
     
     PERMISSIONS(0x100),
-    PERMISSIONS_MATCHING(0x101);
+    PERMISSIONS_MATCHING(0x101),
+
+    UUID(0x200);
 
     public final int number;
 
@@ -29,6 +31,7 @@ public enum PlayerField {
             case     6: return LEVEL;
             case 0x100: return PERMISSIONS;
             case 0x101: return PERMISSIONS_MATCHING;
+            case 0x200: return UUID;
         }
         throw new IndexOutOfBoundsException(v);
     }
